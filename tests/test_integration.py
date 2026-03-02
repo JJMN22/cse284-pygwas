@@ -1,7 +1,7 @@
 """
-tests/test_integration.py — Integration tests against ps3_gwas.vcf.gz.
+tests/test_integration.py — Integration tests against a real VCF.
 
-Requires the real VCF to be present at the project root.
+Requires gwas.vcf.gz to be present at the project root.
 Skip gracefully if it is absent (CI without large files).
 
 Run with:
@@ -14,12 +14,12 @@ import numpy as np
 import pandas as pd
 import pytest
 
-REAL_VCF = os.path.join(os.path.dirname(__file__), "..", "ps3_gwas.vcf.gz")
+REAL_VCF = os.path.join(os.path.dirname(__file__), "..", "gwas.vcf.gz")
 REAL_VCF = os.path.abspath(REAL_VCF)
 
 pytestmark = pytest.mark.skipif(
     not os.path.exists(REAL_VCF),
-    reason="ps3_gwas.vcf.gz not present",
+    reason="gwas.vcf.gz not present",
 )
 
 

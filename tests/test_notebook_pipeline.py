@@ -1,5 +1,5 @@
 """End-to-end pipeline tests reproducing the Q2.1–Q2.4 notebook workflow.
-Falls back to a synthetic phenotype if ps3_gwas.phen is not present.
+Falls back to a synthetic phenotype if gwas.phen is not present.
 """
 
 import os
@@ -14,15 +14,15 @@ import pytest
 from qqman import qqman
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
-VCF_PATH = os.path.join(ROOT, "ps3_gwas.vcf.gz")
-PHENO_PATH = os.path.join(ROOT, "ps3_gwas.phen")
+VCF_PATH = os.path.join(ROOT, "gwas.vcf.gz")
+PHENO_PATH = os.path.join(ROOT, "gwas.phen")
 PLOTS_DIR = os.path.join(ROOT, "plots")
 MAF = 0.05
 N_PCS = 3
 
 pytestmark = pytest.mark.skipif(
     not os.path.exists(VCF_PATH),
-    reason="ps3_gwas.vcf.gz not present",
+    reason="gwas.vcf.gz not present",
 )
 
 os.makedirs(PLOTS_DIR, exist_ok=True)
@@ -49,7 +49,7 @@ def _get_pheno(samples):
         print(f"  Using real phenotype: {PHENO_PATH}")
         return load_pheno(PHENO_PATH), "real"
     else:
-        print("  ps3_gwas.phen not found — using synthetic phenotype")
+        print("  gwas.phen not found — using synthetic phenotype")
         _, _, G = _get_vcf()
         rng = np.random.default_rng(284)
         causal_idx = len(G) // 2
@@ -96,7 +96,7 @@ class TestQ21NoCovarGWAS:
         results = run_linear(G_aln, variants, y_arr)
         _cache["results_no_covar"] = results
 
-        out_prefix = str(tmp_path / "ps3_gwas")
+        out_prefix = str(tmp_path / "gwas")
         write_assoc_linear(results, out_prefix)
         assert os.path.exists(f"{out_prefix}.assoc.linear")
 
@@ -146,7 +146,7 @@ class TestQ22PCA:
 
         samples, _, _ = _get_vcf()
         pcs = _get_pcs()
-        path = str(tmp_path / "ps3_gwas.eigenvec")
+        path = str(tmp_path / "gwas.eigenvec")
         write_eigenvec(path, samples, pcs)
         assert os.path.exists(path)
         df = pd.read_csv(path, sep=r"\s+", header=None)
@@ -194,7 +194,7 @@ class TestQ23CovarGWAS:
         results = run_linear(G_aln, variants, y_arr, covariates=cov_arr)
         _cache["results_covar"] = results
 
-        out_prefix = str(tmp_path / "ps3_gwas_covar")
+        out_prefix = str(tmp_path / "gwas_covar")
         write_assoc_linear(results, out_prefix)
         assert os.path.exists(f"{out_prefix}.assoc.linear")
 
@@ -265,7 +265,7 @@ class TestQ24Clumping:
                 f"  Top clump: {clumps.iloc[0]['SNP']} chr{clumps.iloc[0]['CHR']} p={clumps.iloc[0]['P']:.2e}"
             )
 
-        out_prefix = str(tmp_path / "ps3_gwas_clump")
+        out_prefix = str(tmp_path / "gwas_clump")
         write_clumped(clumps, out_prefix)
         assert os.path.exists(f"{out_prefix}.clumped")
 
