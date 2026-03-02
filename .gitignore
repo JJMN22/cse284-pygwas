@@ -1,0 +1,31 @@
+# PLINK outputs
+*.assoc.linear
+*.eigenvec
+*.eigenval
+*.clumped
+*.log
+*.nosex
+
+# Large genomic data files
+*.vcf.gz
+*.vcf
+*.bed
+*.bim
+*.fam
+*.phen
+
+# Python
+__pycache__/
+*.pyc
+.eggs/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+EOF
+*.ipynb
+
+# Misc 
+Proposal.txt
+plink
+.vscode/
