@@ -41,6 +41,10 @@ pygwas --vcf data.vcf.gz --clump results_covar.assoc.linear --clump-p1 5e-8 --cl
 
 Output files follow PLINK conventions: `.assoc.linear`, `.eigenvec`, `.clumped`.
 
+## Data
+
+`gwas.vcf.gz` and `gwas.phen` are tracked with [Git LFS](https://git-lfs.com).
+
 ## Tests
 
 ```bash

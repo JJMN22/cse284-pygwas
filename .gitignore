@@ -30,3 +30,5 @@ Proposal.txt
 plink
 .vscode/
 plots/
+!gwas.phen
+!gwas.vcf.gz

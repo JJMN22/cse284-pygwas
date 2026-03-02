@@ -1,0 +1,2 @@
+gwas.phen filter=lfs diff=lfs merge=lfs -text
+gwas.vcf.gz filter=lfs diff=lfs merge=lfs -text
