@@ -25,7 +25,7 @@ def load_vcf(
         samples = [vcf.samples[i] for i in col_idx]
     else:
         col_idx = list(range(len(vcf.samples)))
-        samples = vcf.samples
+        samples = list(vcf.samples)
 
     col_idx = np.array(col_idx, dtype=np.int32)
     meta, geno = [], []
@@ -35,7 +35,8 @@ def load_vcf(
             continue
 
         gt = v.gt_types[col_idx].astype(np.float32)
-        gt[gt == 3] = np.nan  # 3 = missing in cyvcf2
+        gt[gt == 2] = np.nan  # 2 = UNKNOWN in cyvcf2
+        gt[gt == 3] = 2.0  # 3 = HOM_ALT → dosage 2
 
         af = np.nansum(gt) / (2.0 * np.sum(~np.isnan(gt)))
         if min(af, 1 - af) < maf_threshold:

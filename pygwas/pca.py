@@ -1,8 +1,10 @@
 """
 pygwas/pca.py — PCA on genotype matrix, replicating PLINK --pca.
 
-Mean-imputes missing genotypes, mean-centers and unit-variance scales
-each SNP before SVD, matching PLINK's default standardization.
+Mean-imputes missing genotypes, mean-centers each SNP, then scales by
+sqrt(2 * p_hat * (1 - p_hat)) — PLINK's HWE-based standardization —
+before SVD. This differs from simple unit-variance scaling and matches
+PLINK --pca output, particularly for rare variants.
 """
 
 import numpy as np
@@ -27,10 +29,13 @@ def run_pca(G: "np.ndarray", n_components: int = 3) -> "np.ndarray":
     nan_mask = np.isnan(G)
     G[nan_mask] = np.take(col_means, np.where(nan_mask)[1])
 
-    # Standardize each SNP to mean=0, std=1
+    # Standardize using PLINK's HWE-based scaling: sqrt(2 * p_hat * (1 - p_hat))
+    # where p_hat = mean_dosage / 2 (alt allele frequency).
+    # col_means still holds the pre-centering dosage means here.
     G -= col_means
-    col_std = G.std(axis=0)
-    col_std[col_std == 0] = 1  # avoid divide-by-zero for monomorphic SNPs
+    p_hat = col_means / 2.0
+    col_std = np.sqrt(2.0 * p_hat * (1.0 - p_hat))
+    col_std[col_std == 0] = 1  # monomorphic SNP guard
     G /= col_std
 
     svd = TruncatedSVD(n_components=n_components, random_state=42)

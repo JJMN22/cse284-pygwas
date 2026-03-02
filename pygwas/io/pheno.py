@@ -16,6 +16,7 @@ def load_pheno(path: str) -> pd.Series:
     """Returns a Series indexed by IID with float phenotype values. -9 and NA are dropped."""
     df = pd.read_csv(path, sep=r"\s+", header=None, names=["FID", "IID", "PHENO"])
     df = df[~df["PHENO"].isin([-9, -9.0])]
+    df = df.dropna(subset=["PHENO"])
     return df.set_index("IID")["PHENO"].astype(float)
 
 

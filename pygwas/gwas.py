@@ -30,6 +30,10 @@ def run_linear(
     -------
     DataFrame with columns: CHR, SNP, BP, A1, TEST, NMISS, BETA, SE, T, P
     """
+    if len(variants) == 0:
+        return pd.DataFrame(
+            columns=["CHR", "SNP", "BP", "A1", "TEST", "NMISS", "BETA", "SE", "T", "P"]
+        )
     results = []
     for start in range(0, len(variants), BATCH_SIZE):
         batch_G = G[start : start + BATCH_SIZE]  # (batch, n_samples)
@@ -47,30 +51,39 @@ def _regress_batch(
     n_samples = len(y)
     rows = []
 
-    # Build covariate projection matrix Q (includes intercept)
+    # Build full covariate matrix (includes intercept).
+    # Per-SNP subsets are taken inside the loop so that each SNP's QR
+    # decomposition, y_r, and df_resid are all computed on only the
+    # non-missing samples — matching PLINK --linear behaviour and avoiding
+    # the FWL breakdown caused by mean-imputing across the full sample set.
     intercept = np.ones((n_samples, 1))
     C = np.hstack([intercept, covariates]) if covariates is not None else intercept
-    Q, _ = np.linalg.qr(C)
-    y_r = y - Q @ (Q.T @ y)  # residualize y on covariates
-
-    df_resid = n_samples - C.shape[1] - 1
+    n_covars = C.shape[1]
 
     for i, (_, v) in enumerate(variants.iterrows()):
         g = G[i].copy()
 
-        # Per-SNP sample mask: drop samples missing this genotype
+        # Per-SNP sample mask: exclude samples with missing genotype
         valid = ~np.isnan(g)
-        n_valid = valid.sum()
-        if n_valid < C.shape[1] + 2:
+        n_valid = int(valid.sum())
+        if n_valid < n_covars + 2:
             continue
 
-        # Mean-impute then residualize genotype
-        g[~valid] = np.nanmean(g)
-        g_r = g - Q @ (Q.T @ g)
+        # Subset all arrays to the valid samples for this SNP
+        g_v = g[valid].astype(float)
+        y_v = y[valid]
+        C_v = C[valid]
+
+        # Per-SNP QR decomposition and FWL residualization
+        Q_v, _ = np.linalg.qr(C_v)
+        y_r = y_v - Q_v @ (Q_v.T @ y_v)
+        g_r = g_v - Q_v @ (Q_v.T @ g_v)
 
         ss_g = g_r @ g_r
         if ss_g == 0:
             continue
+
+        df_resid = n_valid - n_covars - 1
 
         beta = (g_r @ y_r) / ss_g
         resid = y_r - beta * g_r
