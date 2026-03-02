@@ -1,12 +1,4 @@
-"""
-pygwas/io/pheno.py — Load phenotype and covariate files.
-
-PLINK .phen format (space-delimited, no header):
-    FID  IID  PHENOTYPE
-
-PLINK .eigenvec format (space-delimited, no header):
-    FID  IID  PC1  PC2  ...
-"""
+"""pygwas/io/pheno.py — Load phenotype and covariate files."""
 
 import numpy as np
 import pandas as pd
@@ -34,7 +26,5 @@ def write_eigenvec(path: str, sample_ids: list[str], pcs: "np.ndarray") -> None:
     n_pcs = pcs.shape[1]
     df = pd.DataFrame(pcs, columns=[f"PC{i}" for i in range(1, n_pcs + 1)])
     df.insert(0, "IID", sample_ids)
-    df.insert(
-        0, "FID", sample_ids
-    )  # use IID as FID since VCFs have no family structure
+    df.insert(0, "FID", sample_ids)
     df.to_csv(path, sep=" ", index=False, header=False)

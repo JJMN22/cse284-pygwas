@@ -35,9 +35,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # Modes
     p.add_argument("--linear", action="store_true")
-    p.add_argument(
-        "--hide-covar", action="store_true"
-    )  # no-op: we always hide covar rows
+    p.add_argument("--hide-covar", action="store_true")
     p.add_argument("--pca", type=int, metavar="N")
 
     # Clumping

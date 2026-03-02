@@ -1,9 +1,4 @@
-"""
-pygwas/output.py — Write results in PLINK-compatible formats.
-
-.assoc.linear columns: CHR SNP BP A1 TEST NMISS BETA SE T P
-.clumped columns:      CHR SNP BP P
-"""
+"""pygwas/output.py — Write results in PLINK-compatible formats."""
 
 import pandas as pd
 

@@ -9,6 +9,7 @@ Run with:
 """
 
 import os
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -22,12 +23,11 @@ pytestmark = pytest.mark.skipif(
 )
 
 
-# ── Shared fixtures ────────────────────────────────────────────────────────────
-
 @pytest.fixture(scope="module")
 def loaded_vcf():
     """Load once per module with MAF>=0.05.  ~25s, 830k SNPs."""
     from pygwas.io.vcf import load_vcf
+
     return load_vcf(REAL_VCF, maf_threshold=0.05)
 
 
@@ -39,6 +39,7 @@ def vcf_slice(loaded_vcf):
 
 
 # ── 1. VCF loading ─────────────────────────────────────────────────────────────
+
 
 class TestRealVCFLoad:
     def test_sample_count(self, loaded_vcf):
@@ -68,13 +69,17 @@ class TestRealVCFLoad:
         idx = rng.integers(0, G.size, size=50_000)
         vals = G.ravel()[idx]
         valid = set(float(v) for v in vals if not np.isnan(v))
-        assert valid <= {0.0, 1.0, 2.0}, f"Unexpected dosage values: {valid - {0.0,1.0,2.0}}"
+        assert valid <= {0.0, 1.0, 2.0}, (
+            f"Unexpected dosage values: {valid - {0.0, 1.0, 2.0}}"
+        )
 
     def test_no_fully_missing_variants(self, loaded_vcf):
         _, _, G = loaded_vcf
         # Every row should have at least one non-NaN value
         all_missing = np.all(np.isnan(G), axis=1)
-        assert all_missing.sum() == 0, f"{all_missing.sum()} fully-missing variants survived MAF filter"
+        assert all_missing.sum() == 0, (
+            f"{all_missing.sum()} fully-missing variants survived MAF filter"
+        )
 
     def test_maf_filter_respected(self, loaded_vcf):
         _, variants, G = loaded_vcf
@@ -90,8 +95,9 @@ class TestRealVCFLoad:
 
     def test_chrom_no_chr_prefix(self, loaded_vcf):
         _, variants, _ = loaded_vcf
-        assert not variants["CHR"].str.startswith("chr").any(), \
+        assert not variants["CHR"].str.startswith("chr").any(), (
             "CHR column should not have 'chr' prefix"
+        )
 
     def test_all_autosomes_present(self, loaded_vcf):
         _, variants, _ = loaded_vcf
@@ -107,6 +113,7 @@ class TestRealVCFLoad:
 
     def test_keep_samples_subset(self):
         from pygwas.io.vcf import load_vcf
+
         keep = ["NA06984", "NA12878", "NA18504"]
         samples, variants, G = load_vcf(REAL_VCF, keep_samples=keep, maf_threshold=0.05)
         assert set(samples) == set(keep)
@@ -114,6 +121,7 @@ class TestRealVCFLoad:
 
     def test_keep_samples_preserves_order(self):
         from pygwas.io.vcf import load_vcf
+
         keep = ["NA12878", "NA06984"]  # reversed
         samples, _, _ = load_vcf(REAL_VCF, keep_samples=keep, maf_threshold=0.3)
         # Order should match VCF order, not keep list order
@@ -126,30 +134,32 @@ class TestRealVCFLoad:
         assert (variants["SNP"].str.len() > 0).all()
 
 
-# ── 2. PCA ─────────────────────────────────────────────────────────────────────
-
 class TestRealPCA:
     def test_output_shape(self, vcf_slice):
         from pygwas.pca import run_pca
+
         samples, _, G = vcf_slice
         pcs = run_pca(G, n_components=3)
         assert pcs.shape == (len(samples), 3)
 
     def test_no_nan_in_pcs(self, vcf_slice):
         from pygwas.pca import run_pca
+
         _, _, G = vcf_slice
         pcs = run_pca(G, n_components=3)
         assert not np.isnan(pcs).any()
 
     def test_pcs_have_variance(self, vcf_slice):
         from pygwas.pca import run_pca
+
         _, _, G = vcf_slice
         pcs = run_pca(G, n_components=3)
         for k in range(3):
-            assert pcs[:, k].std() > 0, f"PC{k+1} has zero variance"
+            assert pcs[:, k].std() > 0, f"PC{k + 1} has zero variance"
 
     def test_different_n_components(self, vcf_slice):
         from pygwas.pca import run_pca
+
         _, samples_list, G = vcf_slice
         samples, _, _ = vcf_slice
         for n in (1, 5, 10):
@@ -157,8 +167,9 @@ class TestRealPCA:
             assert pcs.shape == (len(samples), n)
 
     def test_write_eigenvec_roundtrip(self, vcf_slice, tmp_path):
-        from pygwas.pca import run_pca
         from pygwas.io.pheno import load_covariates, write_eigenvec
+        from pygwas.pca import run_pca
+
         samples, _, G = vcf_slice
         pcs = run_pca(G, n_components=3)
         path = str(tmp_path / "test.eigenvec")
@@ -169,16 +180,11 @@ class TestRealPCA:
         np.testing.assert_allclose(cov.values, pcs, rtol=1e-5)
 
 
-# ── 3. Linear GWAS on a slice ─────────────────────────────────────────────────
-
 class TestRealLinearGWAS:
-    """
-    Use actual genotype data but a synthetic phenotype so we control the ground truth.
-    """
-
     @pytest.fixture(scope="class")
     def gwas_inputs(self, vcf_slice):
         from pygwas.gwas import align_samples
+
         samples, variants, G = vcf_slice
         rng = np.random.default_rng(42)
         # True effect on SNP 100; everything else is noise
@@ -191,18 +197,32 @@ class TestRealLinearGWAS:
 
     def test_result_row_count(self, gwas_inputs):
         from pygwas.gwas import run_linear
+
         G, variants, y = gwas_inputs
         results = run_linear(G, variants, y)
         assert len(results) == len(variants)
 
     def test_output_columns(self, gwas_inputs):
         from pygwas.gwas import run_linear
+
         G, variants, y = gwas_inputs
         results = run_linear(G, variants, y)
-        assert {"CHR","SNP","BP","A1","TEST","NMISS","BETA","SE","T","P"}.issubset(set(results.columns))
+        assert {
+            "CHR",
+            "SNP",
+            "BP",
+            "A1",
+            "TEST",
+            "NMISS",
+            "BETA",
+            "SE",
+            "T",
+            "P",
+        }.issubset(set(results.columns))
 
     def test_nmiss_equals_n_samples(self, gwas_inputs):
         from pygwas.gwas import run_linear
+
         G, variants, y = gwas_inputs
         results = run_linear(G, variants, y)
         # No missing data in this VCF
@@ -210,6 +230,7 @@ class TestRealLinearGWAS:
 
     def test_recovers_causal_snp(self, gwas_inputs):
         from pygwas.gwas import run_linear
+
         G, variants, y = gwas_inputs
         results = run_linear(G, variants, y)
         # SNP 100 should be the most significant
@@ -219,12 +240,14 @@ class TestRealLinearGWAS:
 
     def test_p_values_in_range(self, gwas_inputs):
         from pygwas.gwas import run_linear
+
         G, variants, y = gwas_inputs
         results = run_linear(G, variants, y)
         assert (results["P"] >= 0).all() and (results["P"] <= 1).all()
 
     def test_no_nan_results(self, gwas_inputs):
         from pygwas.gwas import run_linear
+
         G, variants, y = gwas_inputs
         results = run_linear(G, variants, y)
         for col in ("BETA", "SE", "T", "P"):
@@ -233,15 +256,22 @@ class TestRealLinearGWAS:
     def test_with_pca_covariates(self, vcf_slice):
         from pygwas.gwas import align_samples, run_linear
         from pygwas.pca import run_pca
+
         samples, variants, G = vcf_slice
         pcs = run_pca(G, n_components=3)
         rng = np.random.default_rng(7)
         y_series = pd.Series(
-            1.5 * G[200].astype(float) + 2.0 * pcs[:, 0] + rng.standard_normal(len(samples)),
+            1.5 * G[200].astype(float)
+            + 2.0 * pcs[:, 0]
+            + rng.standard_normal(len(samples)),
             index=samples,
         )
-        idx, y_arr, cov_arr = align_samples(samples, y_series, pd.DataFrame(pcs, index=samples))
-        results = run_linear(G[:500, :][:, idx], variants.iloc[:500], y_arr, covariates=cov_arr)
+        idx, y_arr, cov_arr = align_samples(
+            samples, y_series, pd.DataFrame(pcs, index=samples)
+        )
+        results = run_linear(
+            G[:500, :][:, idx], variants.iloc[:500], y_arr, covariates=cov_arr
+        )
         assert len(results) == 500
         top = results.loc[results["P"].idxmin()]
         assert top["SNP"] == variants.iloc[200]["SNP"]

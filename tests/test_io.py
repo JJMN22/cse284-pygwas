@@ -76,16 +76,6 @@ class TestLoadCovariates:
 
 
 class TestGtTypesEncoding:
-    """
-    Validate the cyvcf2 gt_types encoding fix in isolation.
-
-    cyvcf2 gt_types values:
-        0 = HOM_REF   → dosage 0
-        1 = HET       → dosage 1
-        2 = UNKNOWN   → NaN
-        3 = HOM_ALT   → dosage 2
-    """
-
     def _convert(self, gt_types_array):
         """Replicate the corrected encoding from load_vcf."""
         gt = gt_types_array.astype(np.float32)

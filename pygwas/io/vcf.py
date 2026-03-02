@@ -1,12 +1,4 @@
-"""
-Load VCF into a dosage matrix.
-
-Returns:
--------
-samples  : list[str]
-variants : pd.DataFrame  — CHR, SNP, BP, A1 (alt), A2 (ref)
-G        : np.ndarray (n_snps, n_samples), float32, NaN=missing
-"""
+"""pygwas/io/vcf.py — Load VCF into a dosage matrix."""
 
 import numpy as np
 import pandas as pd
@@ -35,12 +27,12 @@ def load_vcf(
             continue
 
         gt = v.gt_types[col_idx].astype(np.float32)
-        gt[gt == 2] = np.nan  # 2 = UNKNOWN in cyvcf2
-        gt[gt == 3] = 2.0  # 3 = HOM_ALT → dosage 2
+        gt[gt == 2] = np.nan
+        gt[gt == 3] = 2.0
 
         n_obs = np.sum(~np.isnan(gt))
         if n_obs == 0:
-            continue  # all samples missing — no information
+            continue
         af = np.nansum(gt) / (2.0 * n_obs)
         if min(af, 1 - af) < maf_threshold:
             continue

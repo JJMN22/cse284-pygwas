@@ -1,9 +1,4 @@
-"""
-pygwas/gwas.py — Batched OLS linear regression, replicating PLINK --linear.
-
-Uses the Frisch-Waugh-Lovell theorem to residualize y and G on covariates
-once per batch, reducing each SNP test to a simple univariate regression.
-"""
+"""pygwas/gwas.py — Per-SNP OLS linear regression, replicating PLINK --linear."""
 
 import numpy as np
 import pandas as pd
@@ -18,18 +13,7 @@ def run_linear(
     y: np.ndarray,
     covariates: np.ndarray | None = None,
 ) -> pd.DataFrame:
-    """
-    Parameters
-    ----------
-    G          : (n_snps, n_samples) dosage matrix, NaN=missing
-    variants   : DataFrame with CHR, SNP, BP, A1, A2 (one row per SNP)
-    y          : (n_samples,) phenotype vector, no NaNs
-    covariates : (n_samples, k) covariate matrix, or None
-
-    Returns
-    -------
-    DataFrame with columns: CHR, SNP, BP, A1, TEST, NMISS, BETA, SE, T, P
-    """
+    """Run per-SNP OLS. Returns DataFrame with CHR, SNP, BP, BETA, SE, T, P."""
     if len(variants) == 0:
         return pd.DataFrame(
             columns=["CHR", "SNP", "BP", "A1", "TEST", "NMISS", "BETA", "SE", "T", "P"]
@@ -51,11 +35,6 @@ def _regress_batch(
     n_samples = len(y)
     rows = []
 
-    # Build full covariate matrix (includes intercept).
-    # Per-SNP subsets are taken inside the loop so that each SNP's QR
-    # decomposition, y_r, and df_resid are all computed on only the
-    # non-missing samples — matching PLINK --linear behaviour and avoiding
-    # the FWL breakdown caused by mean-imputing across the full sample set.
     intercept = np.ones((n_samples, 1))
     C = np.hstack([intercept, covariates]) if covariates is not None else intercept
     n_covars = C.shape[1]
@@ -63,18 +42,15 @@ def _regress_batch(
     for i, (_, v) in enumerate(variants.iterrows()):
         g = G[i].copy()
 
-        # Per-SNP sample mask: exclude samples with missing genotype
         valid = ~np.isnan(g)
         n_valid = int(valid.sum())
         if n_valid < n_covars + 2:
             continue
 
-        # Subset all arrays to the valid samples for this SNP
         g_v = g[valid].astype(float)
         y_v = y[valid]
         C_v = C[valid]
 
-        # Per-SNP QR decomposition and FWL residualization
         Q_v, _ = np.linalg.qr(C_v)
         y_r = y_v - Q_v @ (Q_v.T @ y_v)
         g_r = g_v - Q_v @ (Q_v.T @ g_v)
@@ -114,10 +90,7 @@ def align_samples(
     y: pd.Series,
     covariates: pd.DataFrame | None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray | None]:
-    """
-    Inner-join samples, phenotype, and covariates on IID.
-    Returns aligned (sample_idx, y_array, covariate_array).
-    """
+    """Inner-join samples, y, and covariates. Returns (sample_idx, y_arr, cov_arr)."""
     ids = pd.Index(samples)
     ids = ids[ids.isin(y.index)]
     if covariates is not None:

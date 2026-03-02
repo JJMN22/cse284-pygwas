@@ -1,12 +1,4 @@
-"""
-pygwas/clump.py — LD-based clumping, replicating PLINK --clump.
-
-Algorithm:
-  1. Sort SNPs by p-value.
-  2. Greedily pick the most significant SNP as an index variant.
-  3. Remove all SNPs within --clump-kb and r² ≥ --clump-r2 of the index.
-  4. Repeat until no SNPs below --clump-p1 remain.
-"""
+"""pygwas/clump.py — LD-based clumping, replicating PLINK --clump."""
 
 import numpy as np
 import pandas as pd
@@ -20,28 +12,13 @@ def clump(
     r2_threshold: float = 0.5,
     kb_threshold: float = 250.0,
 ) -> pd.DataFrame:
-    """
-    Parameters
-    ----------
-    assoc    : GWAS results DataFrame (must have SNP, P columns)
-    G        : (n_snps, n_samples) dosage matrix aligned to variants
-    variants : DataFrame with SNP, CHR, BP columns aligned to G
-    p1       : index variant p-value threshold
-    r2_threshold : LD threshold for clumping
-    kb_threshold : window size in kilobases
-
-    Returns
-    -------
-    DataFrame of index variants with columns: CHR, SNP, BP, P
-    """
-    # Merge association stats onto variant positions
+    """Greedy LD clumping. Returns DataFrame of index variants (CHR, SNP, BP, P)."""
     df = variants[["SNP", "CHR", "BP"]].merge(assoc[["SNP", "P"]], on="SNP")
     df = df[df["P"] <= p1].sort_values("P").reset_index(drop=True)
 
     if df.empty:
         return pd.DataFrame(columns=["CHR", "SNP", "BP", "P"])
 
-    # Map SNP → row index in G for fast LD computation
     snp_to_idx = {snp: i for i, snp in enumerate(variants["SNP"])}
 
     clumps = []
