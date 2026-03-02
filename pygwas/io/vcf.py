@@ -38,7 +38,10 @@ def load_vcf(
         gt[gt == 2] = np.nan  # 2 = UNKNOWN in cyvcf2
         gt[gt == 3] = 2.0  # 3 = HOM_ALT → dosage 2
 
-        af = np.nansum(gt) / (2.0 * np.sum(~np.isnan(gt)))
+        n_obs = np.sum(~np.isnan(gt))
+        if n_obs == 0:
+            continue  # all samples missing — no information
+        af = np.nansum(gt) / (2.0 * n_obs)
         if min(af, 1 - af) < maf_threshold:
             continue
 
