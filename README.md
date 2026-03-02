@@ -14,13 +14,13 @@ Assuming you have anaconda installed:
 ```bash
 conda create -n pygwas python=3.10
 conda activate pygwas
-pip install -r requirements.txt
+pip install -e .
 ```
 
 Otherwise, you can install directly to your global python env:
 
 ```bash
-pip install -r requirements.txt
+pip install -e .
 ```
 
 ## Usage

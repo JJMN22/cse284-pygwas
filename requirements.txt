@@ -1,8 +1,0 @@
-numpy>=1.24
-pandas>=1.5
-scipy>=1.10
-cyvcf2>=0.30
-scikit-learn>=1.2
-matplotlib>=3.7
-qqman>=0.1
-pytest
