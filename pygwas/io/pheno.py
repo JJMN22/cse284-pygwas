@@ -5,8 +5,20 @@ import pandas as pd
 
 
 def load_pheno(path: str) -> pd.Series:
-    """Returns a Series indexed by IID with float phenotype values. -9 and NA are dropped."""
-    df = pd.read_csv(path, sep=r"\s+", header=None, names=["FID", "IID", "PHENO"])
+    """Returns a Series indexed by IID with float phenotype values. -9 and NA are dropped.
+    Supports both old format (FID IID PHENO) and new format (IID with header line starting with #IID).
+    """
+    # Check if file has a header line starting with #IID (new format)
+    with open(path, 'r') as f:
+        first_line = f.readline().strip()
+    
+    if first_line.startswith("#IID"):
+        # New format: IID in first column, phenotype in second column, with header
+        df = pd.read_csv(path, sep=r"\s+", comment="#", header=None, names=["IID", "PHENO"])
+    else:
+        # Old format: FID IID PHENO without header
+        df = pd.read_csv(path, sep=r"\s+", header=None, names=["FID", "IID", "PHENO"])
+    
     df = df[~df["PHENO"].isin([-9, -9.0])]
     df = df.dropna(subset=["PHENO"])
     return df.set_index("IID")["PHENO"].astype(float)

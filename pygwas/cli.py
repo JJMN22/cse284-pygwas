@@ -75,11 +75,14 @@ def main():
 
         y = load_pheno(args.pheno)
         covariates = load_covariates(args.covar) if args.covar else None
-
+        # print(samples, y, covariates)
         sample_idx, y_arr, cov_arr = align_samples(samples, y, covariates)
+        # print(G.shape)
+        # print(sample_idx)
         G_aligned = G[:, sample_idx]
 
         print(f"Running linear GWAS on {len(y_arr)} samples")
+
         results = run_linear(G_aligned, variants, y_arr, cov_arr)
         write_assoc_linear(results, args.out)
         return
